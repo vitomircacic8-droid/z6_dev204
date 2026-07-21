@@ -9,51 +9,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Install dependencies
+      - name: Install Ansible and SSHPASS
         run: |
-          pip install paramiko pyyaml
+          sudo apt-get update
+          sudo apt-get install -y ansible sshpass
 
-      - name: Create users on PROD server
+      - name: Run Ansible Playbook
+        env:
+          PROD_SRV_PASSWORD: ${{ secrets.PROD_SRV_PASSWORD }}
         run: |
-          python3 - << 'PYEOF'
-          import yaml
-          import paramiko
-
-          host = "185.2.102.70"
-          user = "root"
-          password = "03011bfQDZWAPz8g9"
-
-          with open("users.yml", "r") as f:
-              data = yaml.safe_load(f)
-
-          users = data.get("list_of_users", [])
-
-          ssh = paramiko.SSHClient()
-          ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-          ssh.connect(host, username=user, password=password)
-
-          for u in users:
-              uname = u['username']
-              upass = u['password']
-              
-              # Stvaranje korisnika ako ne postoji
-              cmd_create = f"id -u {uname} || useradd -m -s /bin/bash {uname}"
-              ssh.exec_command(cmd_create)
-              
-              # Postavljanje lozinke za korisnika
-              cmd_pass = f"echo '{uname}:{upass}' | chpasswd"
-              stdin, stdout, stderr = ssh.exec_command(cmd_pass)
-              exit_status = stdout.channel.recv_exit_status()
-              
-              if exit_status == 0:
-                  print(f"User {uname} successfully configured.")
-              else:
-                  print(f"Error for {uname}: {stderr.read().decode()}")
-
-          ssh.close()
-          PYEOF
+          ansible-playbook -i "185.2.102.70," \
+            -u root \
+            -e "ansible_password=$PROD_SRV_PASSWORD" \
+            -e "ansible_ssh_common_args='-o StrictHostKeyChecking=no'" \
+            playbook.yml
