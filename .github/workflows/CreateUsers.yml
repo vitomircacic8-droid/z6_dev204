@@ -43,7 +43,6 @@ jobs:
           for u in users:
               uname = u['username']
               upass = u['password']
-              # Naredba kreira korisnika ako ne postoji, postavlja bash shell i urezuje zaporku
               cmd = f"id -u {uname} &>/dev/null || useradd -m -s /bin/bash {uname} && echo '{uname}:{upass}' | chpasswd"
               stdin, stdout, stderr = ssh.exec_command(cmd)
               stdout.channel.recv_exit_status()
