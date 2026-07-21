@@ -1,27 +1,25 @@
-name: Create Users on PROD
+name: CreateUsers
 
-on:
-  push:
-    branches: [ "**" ]
+on: [push]
 
 jobs:
-  deploy:
+  create-users:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install Ansible
         run: |
           sudo apt-get update
           sudo apt-get install -y ansible sshpass
 
-      - name: Create users on PROD server
+      - name: Run Ansible Playbook
         env:
-          PROD_PASSWORD: ${{ secrets.PROD_SRV_PASSWORD }}
+          ANSIBLE_HOST_KEY_CHECKING: "False"
         run: |
-          ansible-playbook -i "185.2.102.70," playbook.yml \
-            --user root \
-            --extra-vars "ansible_ssh_pass=${PROD_PASSWORD}" \
-            --ssh-extra-args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
-            -vvv
+          ansible-playbook -i "185.2.102.70," \
+            -u root \
+            -e "ansible_password=${{ secrets.PROD_SRV_PASSWORD }}" \
+            -e "ansible_ssh_pass=${{ secrets.PROD_SRV_PASSWORD }}" \
+            playbook.yml
