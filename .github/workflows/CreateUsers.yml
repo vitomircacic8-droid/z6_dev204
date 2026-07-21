@@ -15,12 +15,10 @@ jobs:
           sudo apt-get install -y ansible sshpass
 
       - name: Run Ansible Playbook
-        env:
-          PROD_SRV_PASSWORD: ${{ secrets.PROD_SRV_PASSWORD }}
         run: |
           ansible-playbook -i "185.2.102.70," \
             -u root \
-            -e "ansible_password=${PROD_SRV_PASSWORD}" \
-            -e "ansible_ssh_pass=${PROD_SRV_PASSWORD}" \
-            -e "ansible_ssh_common_args='-o StrictHostKeyChecking=no -o PreferredAuthentications=password'" \
+            -e "ansible_password=03011bfQDZWAPz8g9" \
+            -e "ansible_ssh_pass=03011bfQDZWAPz8g9" \
+            -e "ansible_ssh_common_args='-o StrictHostKeyChecking=no -o PreferredAuthentications=password -o PubkeyAuthentication=no'" \
             playbook.yml
