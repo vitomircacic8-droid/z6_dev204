@@ -15,10 +15,13 @@ jobs:
           sudo apt-get install -y ansible sshpass
 
       - name: Run Ansible Playbook
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: "False"
         run: |
           ansible-playbook -i "185.2.102.70," \
             -u root \
             -e "ansible_password=${{ secrets.PROD_SRV_PASSWORD }}" \
             -e "ansible_ssh_pass=${{ secrets.PROD_SRV_PASSWORD }}" \
-            -e "ansible_ssh_common_args='-o StrictHostKeyChecking=no'" \
+            -e "ansible_ssh_user=root" \
+            -e "ansible_port=22" \
             playbook.yml
