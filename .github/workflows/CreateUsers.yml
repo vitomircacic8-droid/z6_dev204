@@ -1,0 +1,53 @@
+name: CreateUsers
+
+on: [push]
+
+jobs:
+  create-users:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install paramiko pyyaml
+
+      - name: Create users on PROD server
+        env:
+          PROD_SRV_PASSWORD: ${{ secrets.PROD_SRV_PASSWORD }}
+        run: |
+          python3 - << 'PYEOF'
+          import os
+          import yaml
+          import paramiko
+
+          host = "185.2.102.70"
+          user = "root"
+          password = os.environ.get("PROD_SRV_PASSWORD")
+
+          with open("users.yml", "r") as f:
+              data = yaml.safe_load(f)
+
+          users = data.get("list_of_users", [])
+
+          ssh = paramiko.SSHClient()
+          ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+          ssh.connect(host, username=user, password=password)
+
+          for u in users:
+              uname = u['username']
+              upass = u['password']
+              # Naredba kreira korisnika ako ne postoji, postavlja bash shell i urezuje zaporku
+              cmd = f"id -u {uname} &>/dev/null || useradd -m -s /bin/bash {uname} && echo '{uname}:{upass}' | chpasswd"
+              stdin, stdout, stderr = ssh.exec_command(cmd)
+              stdout.channel.recv_exit_status()
+              print(f"User {uname} processed.")
+
+          ssh.close()
+          PYEOF
