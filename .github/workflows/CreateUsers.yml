@@ -1,35 +1,27 @@
-name: CreateUsers
+name: Create Users on PROD
 
-on: [push]
+on:
+  push:
+    branches: [ "**" ]
 
 jobs:
-  create-users:
+  deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y sshpass yq
+          sudo apt-get install -y ansible sshpass
 
       - name: Create users on PROD server
         env:
-          SSHPASS: ${{ secrets.PROD_SRV_PASSWORD }}
+          PROD_PASSWORD: ${{ secrets.PROD_SRV_PASSWORD }}
         run: |
-          count=$(yq eval '.list_of_users | length' users.yml)
-
-          for (( i=0; i<$count; i++ )); do
-            username=$(yq eval ".list_of_users[$i].username" users.yml -r)
-            password=$(yq eval ".list_of_users[$i].password" users.yml -r)
-
-            echo "Processing user: $username"
-
-            sshpass -e ssh -o StrictHostKeyChecking=no -o PreferredAuthentications=password root@185.2.102.70 "
-              if ! id -u $username >/dev/null 2>&1; then
-                useradd -m -s /bin/bash $username
-              fi
-              echo '$username:$password' | chpasswd
-            "
-          done
+          ansible-playbook -i "185.2.102.70," playbook.yml \
+            --user root \
+            --extra-vars "ansible_ssh_pass=${PROD_PASSWORD}" \
+            --ssh-extra-args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
+            -vvv
