@@ -20,6 +20,7 @@ jobs:
         run: |
           ansible-playbook -i "185.2.102.70," \
             -u root \
-            -e "ansible_password=$PROD_SRV_PASSWORD" \
-            -e "ansible_ssh_common_args='-o StrictHostKeyChecking=no'" \
+            -e "ansible_password=${PROD_SRV_PASSWORD}" \
+            -e "ansible_ssh_pass=${PROD_SRV_PASSWORD}" \
+            -e "ansible_ssh_common_args='-o StrictHostKeyChecking=no -o PreferredAuthentications=password'" \
             playbook.yml
