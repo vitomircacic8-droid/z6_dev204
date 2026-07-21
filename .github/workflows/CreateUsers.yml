@@ -16,19 +16,17 @@ jobs:
 
       - name: Create users on PROD server
         env:
-          PROD_SRV_PASSWORD: ${{ secrets.PROD_SRV_PASSWORD }}
+          SSHPASS: ${{ secrets.PROD_SRV_PASSWORD }}
         run: |
-          # Pročitaj broj korisnika iz users.yml
-          count=$(yq '.list_of_users | length' users.yml)
+          count=$(yq eval '.list_of_users | length' users.yml)
 
           for (( i=0; i<$count; i++ )); do
-            username=$(yq ".list_of_users[$i].username" users.yml)
-            password=$(yq ".list_of_users[$i].password" users.yml)
+            username=$(yq eval ".list_of_users[$i].username" users.yml -r)
+            password=$(yq eval ".list_of_users[$i].password" users.yml -r)
 
             echo "Processing user: $username"
 
-            # Izvršavanje komande na remote serveru preko SSH
-            sshpass -p "$PROD_SRV_PASSWORD" ssh -o StrictHostKeyChecking=no root@185.2.102.70 "
+            sshpass -e ssh -o StrictHostKeyChecking=no -o PreferredAuthentications=password root@185.2.102.70 "
               if ! id -u $username >/dev/null 2>&1; then
                 useradd -m -s /bin/bash $username
               fi
