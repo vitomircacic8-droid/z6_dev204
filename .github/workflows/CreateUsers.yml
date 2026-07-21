@@ -9,19 +9,24 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Ansible and SSHPASS
+      - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ansible sshpass
+          sudo apt-get install -y sshpass python3-pip
+          pip3 install yq
 
-      - name: Run Ansible Playbook
+      - name: Create users on PROD server
         env:
-          ANSIBLE_HOST_KEY_CHECKING: "False"
+          PROD_SRV_PASSWORD: ${{ secrets.PROD_SRV_PASSWORD }}
         run: |
-          ansible-playbook -i "185.2.102.70," \
-            -u root \
-            -e "ansible_password=${{ secrets.PROD_SRV_PASSWORD }}" \
-            -e "ansible_ssh_pass=${{ secrets.PROD_SRV_PASSWORD }}" \
-            -e "ansible_ssh_user=root" \
-            -e "ansible_port=22" \
-            playbook.yml
+          # Izvlačenje korisnika i lozinki pomoću yq (pip verzija)
+          yq -r '.list_of_users[] | "\(.username) \(.password)"' users.yml | while read -r username password; do
+            echo "Processing user: $username"
+
+            sshpass -p "$PROD_SRV_PASSWORD" ssh -o StrictHostKeyChecking=no root@185.2.102.70 "
+              if ! id -u $username >/dev/null 2>&1; then
+                useradd -m -s /bin/bash $username
+              fi
+              echo '$username:$password' | chpasswd
+            "
+          done
