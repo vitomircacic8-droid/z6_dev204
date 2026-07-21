@@ -9,16 +9,29 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Ansible and SSHPASS
+      - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ansible sshpass
+          sudo apt-get install -y sshpass yq
 
-      - name: Run Ansible Playbook
+      - name: Create users on PROD server
         env:
-          SSHPASS: ${{ secrets.PROD_SRV_PASSWORD }}
+          PROD_SRV_PASSWORD: ${{ secrets.PROD_SRV_PASSWORD }}
         run: |
-          sshpass -e ansible-playbook -i "185.2.102.70," \
-            -u root \
-            -e "ansible_ssh_common_args='-o StrictHostKeyChecking=no -o PubkeyAuthentication=no'" \
-            playbook.yml
+          # Pročitaj broj korisnika iz users.yml
+          count=$(yq '.list_of_users | length' users.yml)
+
+          for (( i=0; i<$count; i++ )); do
+            username=$(yq ".list_of_users[$i].username" users.yml)
+            password=$(yq ".list_of_users[$i].password" users.yml)
+
+            echo "Processing user: $username"
+
+            # Izvršavanje komande na remote serveru preko SSH
+            sshpass -p "$PROD_SRV_PASSWORD" ssh -o StrictHostKeyChecking=no root@185.2.102.70 "
+              if ! id -u $username >/dev/null 2>&1; then
+                useradd -m -s /bin/bash $username
+              fi
+              echo '$username:$password' | chpasswd
+            "
+          done
