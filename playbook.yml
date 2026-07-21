@@ -1,0 +1,13 @@
+---
+- hosts: all
+  gather_facts: no
+  vars_files:
+    - users.yml
+  tasks:
+    - name: Create users
+      ansible.builtin.user:
+        name: "{{ item.username }}"
+        password: "{{ item.password | password_hash('sha512') }}"
+        shell: /bin/bash
+        create_home: yes
+      with_items: "{{ list_of_users }}"
