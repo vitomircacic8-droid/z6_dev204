@@ -40,10 +40,20 @@ jobs:
           for u in users:
               uname = u['username']
               upass = u['password']
-              cmd = f"id -u {uname} &>/dev/null || useradd -m -s /bin/bash {uname} && echo '{uname}:{upass}' | chpasswd"
-              stdin, stdout, stderr = ssh.exec_command(cmd)
-              stdout.channel.recv_exit_status()
-              print(f"User {uname} processed.")
+              
+              # Stvaranje korisnika ako ne postoji
+              cmd_create = f"id -u {uname} || useradd -m -s /bin/bash {uname}"
+              ssh.exec_command(cmd_create)
+              
+              # Postavljanje lozinke za korisnika
+              cmd_pass = f"echo '{uname}:{upass}' | chpasswd"
+              stdin, stdout, stderr = ssh.exec_command(cmd_pass)
+              exit_status = stdout.channel.recv_exit_status()
+              
+              if exit_status == 0:
+                  print(f"User {uname} successfully configured.")
+              else:
+                  print(f"Error for {uname}: {stderr.read().decode()}")
 
           ssh.close()
           PYEOF
